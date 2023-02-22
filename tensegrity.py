@@ -11,11 +11,19 @@ from RFEM.Results import resultTables
 
 model = Model(False, 'tensegrity_rfemAPI_8-12-22')
 
+# Numbers of nodes at the beginning of the upper cables
+nodes_of_upper_cables = [7, 6, 8, 5]
+# Numbers of nodes at the beginning of the lower cables
+nodes_of_lower_cables = [1, 2, 3, 4]
+# Numbers of end nodes of pistons
+nodes_of_pistons = [9, 10, 11, 12]
+
+# merge arrays of nodes
+nodes = nodes_of_upper_cables + nodes_of_lower_cables + nodes_of_pistons
+
 
 # Numbers of upper cables - used for direction of the load
 upper_cables = [5, 6, 7, 8]
-# Numbers of nodes at the beginning of the upper cables
-nodes_of_upper_cables = [7, 6, 8, 5]
 # Numbers of stiff members
 bars = [20, 21, 22, 23]
 # Numbers of cables
@@ -61,11 +69,22 @@ def rng_uniform():
     return random_forces
 
 
-def get_results(members):
-    results = []
+def get_results(members, nodes):
+    results = {
+        'internal_forces': [],
+        'displacements_x': [],
+        'displacements_y': [],
+        'displacements_z': [],
+    }
     for i in members:
-        results.append(resultTables.ResultTables.MembersInternalForces(
+        results['internal_forces'].append(resultTables.ResultTables.MembersInternalForces(
             loading_no=5007, object_no=i)[0]['internal_force_n'])
+    for j in nodes:
+        displacements = resultTables.ResultTables.NodesDeformations(
+            loading_no=5007, object_no=j)
+        results['displacements_x'].append(displacements[0]['displacement_x'])
+        results['displacements_y'].append(displacements[0]['displacement_y'])
+        results['displacements_z'].append(displacements[0]['displacement_z'])
     return results
 
 
@@ -106,34 +125,43 @@ def main(iterations):
 
         # get results
         print('getting results...')
-        results = get_results(members_numbers)
-
-        random_forces[0].insert(0, 'bod 7')
-        random_forces[1].insert(0, 'bod 6')
-        random_forces[2].insert(0, 'bod 8')
-        random_forces[3].insert(0, 'bod 5')
+        results = get_results(members_numbers, nodes)
 
         # check if file is empty
-        results_size = os.path.getsize('results.csv')
+        internal_forces_size = os.path.getsize('internal_forces.csv')
+        displacements_size = os.path.getsize('displacements.csv')
         forces_size = os.path.getsize('forces.csv')
 
-        with open('results.csv', mode='a', newline='') as file:
+        with open('internal_forces.csv', mode='a', newline='') as file:
             writer = csv.writer(file)
-            if i == 0 and results_size == 0:
+            if i == 0 and internal_forces_size == 0:
                 writer.writerow(members_numbers)  # write headers only once
                 writer.writerow(members_types)  # write headers only once
-            writer.writerow(results)
+            writer.writerow(results['internal_forces'])
+
+        # to each number in nodes array, add direction string
+        nodes_x = [str(i) + 'x' for i in nodes]
+        nodes_y = [str(i) + 'y' for i in nodes]
+        nodes_z = [str(i) + 'z' for i in nodes]
+        nodes_with_direction = nodes_x + nodes_y + nodes_z
+
+        # merge displacement results into one array
+        displacements = np.array(
+            results['displacements_x'] + results['displacements_y'] + results['displacements_z'])
+
+        with open('displacements.csv', mode='a', newline='') as file:
+            writer = csv.writer(file)
+            if i == 0 and displacements_size == 0:
+                # write headers only once
+                writer.writerow(nodes_with_direction)
+            writer.writerow(displacements)
 
         with open('forces.csv', mode='a', newline='') as file:
             writer = csv.writer(file)
             if i == 0 and forces_size == 0:
-                # write headers only once
-                writer.writerow(
-                    ['', 'Lx - cable 5', 'Ly - cable 8', 'Zg - global'])
-            writer.writerow(random_forces[0])
-            writer.writerow(random_forces[1])
-            writer.writerow(random_forces[2])
-            writer.writerow(random_forces[3])
+                writer.writerow(['7x', '7y', '7z', '6x', '6y', '6z', '8x',
+                                 '8y', '8z', '5x', '5y', '5z'])  # write headers only once
+            writer.writerow(np.array(random_forces).flatten())
 
         # delete results
         model.clientModel.service.delete_all_results(False)
