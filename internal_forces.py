@@ -97,22 +97,25 @@ def main(iterations):
         # assign forces to each member in RFEM
         print('assigning forces to members...')
         for j in range(len(nodes_of_upper_cables)):
-            force_1 = random_forces[j][0]
-            force_2 = random_forces[j][1]
-            force_3 = random_forces[j][2]
+            force_1 = random_forces[j][0]  # force in x direction
+            force_2 = random_forces[j][1]  # force in y direction
+            force_3 = random_forces[j][2]  # force in z direction
 
+            # assign x force to nodes of upper cables
             NodalLoad.Force(no=j+1, load_case_no=5007, nodes_no=str(nodes_of_upper_cables[j]),
                             magnitude=force_1,
                             load_direction=LoadDirectionType.LOAD_DIRECTION_LOCAL_X,
                             specific_direction=True,
                             params={'specific_direction': [NodalLoadSpecificDirectionType.DIRECTION_TYPE_PARALLEL_TO_CS_OF_MEMBER, upper_cables[j]]})
 
+            # assign y forces to nodes of upper cables
             NodalLoad.Force(no=j+20, load_case_no=5007, nodes_no=str(nodes_of_upper_cables[j]),
                             magnitude=force_2,
                             load_direction=LoadDirectionType.LOAD_DIRECTION_LOCAL_Y,
                             specific_direction=True,
                             params={'specific_direction': [NodalLoadSpecificDirectionType.DIRECTION_TYPE_PARALLEL_TO_CS_OF_MEMBER, upper_cables[j]]})
 
+            # assign z forces to nodes of upper cables
             NodalLoad.Force(no=j+30, load_case_no=5007, nodes_no=str(nodes_of_upper_cables[j]),
                             magnitude=force_3,
                             load_direction=LoadDirectionType.LOAD_DIRECTION_LOCAL_Z,
@@ -167,4 +170,4 @@ def main(iterations):
         model.clientModel.service.delete_all_results(False)
 
 
-main(2)
+main(1)
