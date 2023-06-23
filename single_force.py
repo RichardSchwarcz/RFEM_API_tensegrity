@@ -8,7 +8,12 @@ from RFEM.Loads.nodalLoad import NodalLoad
 from RFEM.enums import NodalLoadSpecificDirectionType, LoadDirectionType
 from RFEM.Results import resultTables
 
+# Get the current directory of the script
+current_dir = os.path.dirname(os.path.abspath('piston_strain.py'))
+# Specify the relative path to the CSV folder
+csv_folder_path = os.path.join(current_dir, 'csv')
 
+# Initialize model
 model = Model(False, 'tensegrity_rfemAPI_8-12-22')
 
 # Numbers of nodes at the beginning of the upper cables
@@ -87,7 +92,6 @@ def get_results(members, nodes):
         results['displacements_z'].append(displacements[0]['displacement_z'])
     return results
 
-
 def main(iterations):
     for i in tqdm(range(iterations)):
         # generate 4 random forces for each bar
@@ -131,9 +135,14 @@ def main(iterations):
         results = get_results(members_numbers, nodes)
 
         # check if file is empty
-        internal_forces_size = os.path.getsize('internal_forces.csv')
-        displacements_size = os.path.getsize('displacements.csv')
-        forces_size = os.path.getsize('forces.csv')
+        internal_forces_path = os.path.join(csv_folder_path, 'internal_forces.csv')
+        internal_forces_size = os.path.getsize(internal_forces_path)
+
+        displacements_path = os.path.join(csv_folder_path, 'displacements.csv')
+        displacements_size = os.path.getsize(displacements_path)
+
+        forces_path = os.path.join(csv_folder_path, 'forces.csv')
+        forces_size = os.path.getsize(forces_path)
 
         with open('internal_forces.csv', mode='a', newline='') as file:
             writer = csv.writer(file)
@@ -152,14 +161,14 @@ def main(iterations):
         displacements = np.array(
             results['displacements_x'] + results['displacements_y'] + results['displacements_z'])
 
-        with open('displacements.csv', mode='a', newline='') as file:
+        with open(displacements_path, mode='a', newline='') as file:
             writer = csv.writer(file)
             if i == 0 and displacements_size == 0:
                 # write headers only once
                 writer.writerow(nodes_with_direction)
             writer.writerow(displacements)
 
-        with open('forces.csv', mode='a', newline='') as file:
+        with open(forces_path, mode='a', newline='') as file:
             writer = csv.writer(file)
             if i == 0 and forces_size == 0:
                 writer.writerow(['7x', '7y', '7z', '6x', '6y', '6z', '8x',
